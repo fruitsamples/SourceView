@@ -2,7 +2,7 @@
      File: ChildNode.m 
  Abstract: Generic child node object used with NSOutlineView and NSTreeController.
   
-  Version: 1.1 
+  Version: 1.3 
   
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple 
  Inc. ("Apple") in consideration of your agreement to the following 
@@ -42,7 +42,7 @@
  STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE 
  POSSIBILITY OF SUCH DAMAGE. 
   
- Copyright (C) 2010 Apple Inc. All Rights Reserved. 
+ Copyright (C) 2012 Apple Inc. All Rights Reserved. 
   
  */
 
@@ -55,9 +55,10 @@
 // -------------------------------------------------------------------------------
 - (id)init
 {
-	if (self = [super init])
-	{
-		nodeTitle = [[NSString alloc] initWithString:@""];
+	self = [super init];
+	if (self)
+    {
+		self.nodeTitle = @"";
 		description = [[NSString alloc] initWithString:@"- empty description -"];
 		text = [[NSTextStorage alloc] init];
 	}
@@ -77,7 +78,7 @@
 // -------------------------------------------------------------------------------
 //	setDescription:newDescription:
 // -------------------------------------------------------------------------------
-- (void)setDescription:(NSString*)newDescription
+- (void)setDescription:(NSString *)newDescription
 {
 	[newDescription retain];
 	[description release];
@@ -85,9 +86,9 @@
 }
 
 // -------------------------------------------------------------------------------
-//	description:
+//	description
 // -------------------------------------------------------------------------------
-- (NSString*)description
+- (NSString *)description
 {
 	return description;
 }
@@ -106,7 +107,7 @@
 // -------------------------------------------------------------------------------
 //	text:
 // -------------------------------------------------------------------------------
-- (NSTextStorage*)text
+- (NSTextStorage *)text
 {
 	return text;
 }
@@ -116,7 +117,7 @@
 //
 //	Maintain support for archiving and copying.
 // -------------------------------------------------------------------------------
-- (NSArray*)mutableKeys
+- (NSArray *)mutableKeys
 {
 	return [[super mutableKeys] arrayByAddingObjectsFromArray:
 				[NSArray arrayWithObjects:@"description", @"text", nil]];

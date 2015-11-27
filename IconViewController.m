@@ -2,7 +2,7 @@
      File: IconViewController.m 
  Abstract: Controller object for our icon collection view.
   
-  Version: 1.1 
+  Version: 1.3 
   
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple 
  Inc. ("Apple") in consideration of your agreement to the following 
@@ -42,16 +42,18 @@
  STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE 
  POSSIBILITY OF SUCH DAMAGE. 
   
- Copyright (C) 2010 Apple Inc. All Rights Reserved. 
+ Copyright (C) 2012 Apple Inc. All Rights Reserved. 
   
  */
 
 #import "IconViewController.h"
 
 // key values for the icon view dictionary
-#define KEY_NAME	@"name"
-#define KEY_ICON	@"icon"
+NSString *KEY_NAME = @"name";
+NSString *KEY_ICON = @"icon";
 
+// notification for indicating file system content has been received
+NSString *kReceivedContentNotification = @"ReceivedContentNotification";
 
 @implementation IconViewBox
 - (NSView *)hitTest:(NSPoint)aPoint
@@ -61,15 +63,22 @@
 }
 @end
 
+@interface IconViewController ()
+
+@property (readwrite, retain) IBOutlet NSArrayController *iconArrayController;
+@property (readwrite, retain) NSMutableArray *icons;
+
+@end
+
 
 @implementation IconViewController
 
-@synthesize url;
+@synthesize iconArrayController, url, icons;
 
 // -------------------------------------------------------------------------------
-//	awakeFromNib:
+//	awakeFromNib
 // -------------------------------------------------------------------------------
--(void)awakeFromNib
+- (void)awakeFromNib
 {
 	// listen for changes in the url for this view
 	[self addObserver:	self
@@ -79,46 +88,28 @@
 }
 
 // -------------------------------------------------------------------------------
-//	dealloc:
+//	dealloc
 // -------------------------------------------------------------------------------
 - (void)dealloc
 {
 	self.url = nil;
-	
+	self.icons = nil;
+    
 	[self removeObserver:self forKeyPath:@"url"];
 	
 	[super dealloc];
 }
 
 // -------------------------------------------------------------------------------
-//	icons:
-// -------------------------------------------------------------------------------
-- (NSMutableArray*)icons
-{
-	return icons;
-}
-
-// -------------------------------------------------------------------------------
-//	setIcons:newIcons
-// -------------------------------------------------------------------------------
-- (void)setIcons:(NSMutableArray*)newIcons
-{
-	if (icons != newIcons)
-	{
-		[newIcons retain];
-		[icons release];
-		icons = newIcons;
-	}
-}
-
-// -------------------------------------------------------------------------------
-//	updateIcons:obj
+//	updateIcons:iconArray
 //
-//	The incoming object is the NSArray of file system object to display.
+//	The incoming object is the NSArray of file system objects to display.
 //-------------------------------------------------------------------------------
-- (void)updateIcons:(id)obj
+- (void)updateIcons:(id)iconArray
 {
-	[self setIcons:obj];	// set this icon array to our collection
+    self.icons = iconArray;
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:kReceivedContentNotification object:nil];
 }
 
 // -------------------------------------------------------------------------------
@@ -131,46 +122,43 @@
 {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	
-	NSMutableArray *contentArray = [[NSMutableArray alloc] init];
+    NSMutableArray *contentArray = [[NSMutableArray alloc] init];
+    
+    NSArray *fileURLs = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:url
+                                                      includingPropertiesForKeys:[NSArray array]
+                                                                         options:0
+                                                                           error:nil];
+	if (fileURLs)
+    {
+        for (NSURL *element in fileURLs)
+        {
+            NSString *elementNameStr = nil;
+            NSImage *elementIcon = [[NSWorkspace sharedWorkspace] iconForFile:[element path]];
 
-	NSArray *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[url path] error:nil];
-	for (NSString *element in files)
-	{
-		// we need to reconstruct the full path of the object since 'directoryContentsAtPath' only gives us the object name
-		NSString *urlStr = [[url path] stringByAppendingPathComponent:element];
-		
-		// examine if this object is invisible (don't include in the array)
-		CFDictionaryRef values = NULL;
-		CFStringRef attrs[1] = { kLSItemIsInvisible };
-		CFArrayRef attrNames = CFArrayCreate(NULL, (const void **)attrs, 1, NULL);
-
-		FSRef fileRef;
-		Boolean isDirectory;
-		if (FSPathMakeRef((const UInt8 *)[urlStr fileSystemRepresentation], &fileRef, &isDirectory) == noErr)
-		{
-			if (LSCopyItemAttributes(&fileRef, kLSRolesViewer, attrNames, &values) == noErr)
-			{
-				if (values != NULL)
-				{
-					if (CFDictionaryGetValue(values, kLSItemIsInvisible) == kCFBooleanFalse)
-					{
-						// object is visible so add to our array
-						[contentArray addObject:[NSMutableDictionary dictionaryWithObjectsAndKeys:
-													[[NSWorkspace sharedWorkspace] iconForFile:urlStr], KEY_ICON,
-													element, KEY_NAME,
-													nil]];
-					}
-				}
-				CFRelease(values);
-			}
-		}
-		CFRelease(attrNames);
-	}
-	
-	[self performSelectorOnMainThread:@selector(updateIcons:) withObject:contentArray waitUntilDone:YES];
-	
-	[contentArray release];
-	
+            // only allow visible objects
+            NSNumber *hiddenFlag = nil;
+            if ([element getResourceValue:&hiddenFlag forKey:NSURLIsHiddenKey error:nil])
+            {
+                if (![hiddenFlag boolValue])
+                {
+                    if ([element getResourceValue:&elementNameStr forKey:NSURLNameKey error:nil])
+                    {
+                        // file system object is visible so add to our array
+                        [contentArray addObject:[NSMutableDictionary dictionaryWithObjectsAndKeys:
+                                                    elementIcon, KEY_ICON,
+                                                    elementNameStr, KEY_NAME,
+                                                 nil]];
+                    }
+                }
+            }
+        }
+    }
+    
+    // call back on the main thread to update the icons in our view
+    [self performSelectorOnMainThread:@selector(updateIcons:) withObject:contentArray waitUntilDone:YES];
+    
+    [contentArray release];
+    
 	[pool release];
 }
 
@@ -180,13 +168,14 @@
 //	Listen for changes in the file url.
 //	Given a url, obtain its contents and add only the invisible items to the collection.
 // -------------------------------------------------------------------------------
-- (void)observeValueForKeyPath:(NSString*)keyPath
+- (void)observeValueForKeyPath:(NSString *)keyPath
 								ofObject:(id)object 
-								change:(NSDictionary*)change 
+								change:(NSDictionary *)change 
 								context:(void *)context
 {
 	// build our directory contents on a separate thread,
 	// some portions are from disk which could get expensive depending on the size
+    //
 	[NSThread detachNewThreadSelector:	@selector(gatherContents:)
 										toTarget:self		// we are the target
 										withObject:url];

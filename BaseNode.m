@@ -2,7 +2,7 @@
      File: BaseNode.m 
  Abstract: Generic multi-use node object used with NSOutlineView and NSTreeController.
   
-  Version: 1.1 
+  Version: 1.3 
   
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple 
  Inc. ("Apple") in consideration of your agreement to the following 
@@ -42,7 +42,7 @@
  STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE 
  POSSIBILITY OF SUCH DAMAGE. 
   
- Copyright (C) 2010 Apple Inc. All Rights Reserved. 
+ Copyright (C) 2012 Apple Inc. All Rights Reserved. 
   
  */
 
@@ -51,14 +51,19 @@
 
 @implementation BaseNode
 
+@synthesize nodeTitle, children;
+@synthesize isLeaf, urlString, nodeIcon;
+
 // -------------------------------------------------------------------------------
-//	init:
+//	init
 // -------------------------------------------------------------------------------
 - (id)init
 {
-	if (self = [super init])
+	self = [super init];
+    if (self)
 	{
-		[self setNodeTitle:@"BaseNode Untitled"];
+        self.nodeTitle = @"BaseNode Untitled";
+        
 		[self setChildren:[NSArray array]];
 		[self setLeaf:NO];			// container by default
 	}
@@ -66,11 +71,12 @@
 }
 
 // -------------------------------------------------------------------------------
-//	initLeaf:
+//	initLeaf
 // -------------------------------------------------------------------------------
 - (id)initLeaf
 {
-	if (self = [self init])
+	self = [self init];
+    if (self)
 	{
 		[self setLeaf:YES];
 	}
@@ -78,7 +84,7 @@
 }
 
 // -------------------------------------------------------------------------------
-//	dealloc:
+//	dealloc
 // -------------------------------------------------------------------------------
 - (void)dealloc
 {
@@ -86,64 +92,6 @@
 	[children release];
 	
 	[super dealloc];
-}
-
-// -------------------------------------------------------------------------------
-//	setNodeTitle:newNodeTitle
-// -------------------------------------------------------------------------------
-- (void)setNodeTitle:(NSString*)newNodeTitle
-{
-	[newNodeTitle retain];
-	[nodeTitle release];
-	nodeTitle = newNodeTitle;
-}
-
-// -------------------------------------------------------------------------------
-//	nodeTitle:
-// -------------------------------------------------------------------------------
-- (NSString*)nodeTitle
-{
-	return nodeTitle;
-}
-
-// -------------------------------------------------------------------------------
-//	setNodeIcon:icon
-// -------------------------------------------------------------------------------
-- (void)setNodeIcon:(NSImage*)icon
-{
-    if (!nodeIcon || ![nodeIcon isEqual:icon])
-	{
-		[nodeIcon release];
-		nodeIcon = [icon retain];
-    }
-}
-
-// -------------------------------------------------------------------------------
-//	nodeIcon:
-// -------------------------------------------------------------------------------
-- (NSImage*)nodeIcon
-{
-    return nodeIcon;
-}
-
-// -------------------------------------------------------------------------------
-//	setChildren:newChildren
-// -------------------------------------------------------------------------------
-- (void)setChildren:(NSArray*)newChildren
-{
-	if (children != newChildren)
-    {
-        [children autorelease];
-        children = [[NSMutableArray alloc] initWithArray:newChildren];
-    }
-}
-
-// -------------------------------------------------------------------------------
-//	children:
-// -------------------------------------------------------------------------------
-- (NSMutableArray*)children
-{
-	return children;
 }
 
 // -------------------------------------------------------------------------------
@@ -159,37 +107,9 @@
 }
 
 // -------------------------------------------------------------------------------
-//	isLeaf:
-// -------------------------------------------------------------------------------
-- (BOOL)isLeaf
-{
-	return isLeaf;
-}
-
-// -------------------------------------------------------------------------------
-//	setURL:urlStr
-// -------------------------------------------------------------------------------
-- (void)setURL:(NSString*)urlStr
-{ 
-    if (!urlString || ![urlString isEqualToString:urlStr])
-	{
-		[urlString release]; 
-		urlString = [urlStr retain]; 
-    }
-}
-
-// -------------------------------------------------------------------------------
-//	urlString:
-// -------------------------------------------------------------------------------
-- (NSString*)urlString
-{ 
-    return urlString; 
-}
-
-// -------------------------------------------------------------------------------
 //	compare:aNode
 // -------------------------------------------------------------------------------
-- (NSComparisonResult)compare:(BaseNode*)aNode
+- (NSComparisonResult)compare:(BaseNode *)aNode
 {
 	return [[[self nodeTitle] lowercaseString] compare:[[aNode nodeTitle] lowercaseString]];
 }
@@ -198,7 +118,7 @@
 #pragma mark - Drag and Drop
 
 // -------------------------------------------------------------------------------
-//	isDraggable:
+//	isDraggable
 // -------------------------------------------------------------------------------
 - (BOOL)isDraggable
 {
@@ -209,11 +129,11 @@
 }
 
 // -------------------------------------------------------------------------------
-//	removeObjectFromChildren:obj
+//	parentFromArray:array
 //
 //	Finds the receiver's parent from the nodes contained in the array.
 // -------------------------------------------------------------------------------
-- (id)parentFromArray:(NSArray*)array
+- (id)parentFromArray:(NSArray *)array
 {
 	id result = nil;
 	
@@ -238,7 +158,7 @@
 			}
 		}
 	}
-	
+    
 	return result;
 }
 
@@ -250,15 +170,15 @@
 // -------------------------------------------------------------------------------
 - (void)removeObjectFromChildren:(id)obj
 {
-	// Remove object from children or the children of any sub-nodes
-	NSEnumerator *enumerator = [children objectEnumerator];
+	// remove object from children or the children of any sub-nodes
+	NSEnumerator *enumerator = [self.children objectEnumerator];
 	id node = nil;
 	
 	while (node = [enumerator nextObject])
 	{
 		if (node == obj)
 		{
-			[children removeObjectIdenticalTo:obj];
+			[self.children removeObjectIdenticalTo:obj];
 			return;
 		}
 		
@@ -268,17 +188,15 @@
 }
 
 // -------------------------------------------------------------------------------
-//	descendants:
+//	descendants
 //
 //	Generates an array of all descendants.
 // -------------------------------------------------------------------------------
-- (NSArray*)descendants
+- (NSArray *)descendants
 {
-	NSMutableArray	*descendants = [NSMutableArray array];
-	NSEnumerator	*enumerator = [children objectEnumerator];
-	id				node = nil;
-	
-	while (node = [enumerator nextObject])
+    NSMutableArray	*descendants = [NSMutableArray array];
+	id node = nil;
+	for (node in self.children)
 	{
 		[descendants addObject:node];
 		
@@ -294,13 +212,12 @@
 //	Generates an array of all leafs in children and children of all sub-nodes.
 //	Useful for generating a list of leaf-only nodes.
 // -------------------------------------------------------------------------------
-- (NSArray*)allChildLeafs
+- (NSArray *)allChildLeafs
 {
-	NSMutableArray	*childLeafs = [NSMutableArray array];
-	NSEnumerator	*enumerator = [children objectEnumerator];
-	id				node = nil;
+    NSMutableArray	*childLeafs = [NSMutableArray array];
+	id node = nil;
 	
-	while (node = [enumerator nextObject])
+	for (node in self.children)
 	{
 		if ([node isLeaf])
 			[childLeafs addObject:node];
@@ -311,17 +228,16 @@
 }
 
 // -------------------------------------------------------------------------------
-//	groupChildren:
+//	groupChildren
 //
 //	Returns only the children that are group nodes.
 // -------------------------------------------------------------------------------
-- (NSArray*)groupChildren
+- (NSArray *)groupChildren
 {
-	NSMutableArray	*groupChildren = [NSMutableArray array];
-	NSEnumerator	*childEnumerator = [children objectEnumerator];
+    NSMutableArray	*groupChildren = [NSMutableArray array];
 	BaseNode		*child;
 	
-	while (child = [childEnumerator nextObject])
+	for (child in self.children)
 	{
 		if (![child isLeaf])
 			[groupChildren addObject:child];
@@ -335,13 +251,11 @@
 //	Returns YES if self is contained anywhere inside the children or children of
 //	sub-nodes of the nodes contained inside the given array.
 // -------------------------------------------------------------------------------
-- (BOOL)isDescendantOfOrOneOfNodes:(NSArray*)nodes
+- (BOOL)isDescendantOfOrOneOfNodes:(NSArray *)nodes
 {
     // returns YES if we are contained anywhere inside the array passed in, including inside sub-nodes
-    NSEnumerator *enumerator = [nodes objectEnumerator];
-	id node = nil;
-	
-    while (node = [enumerator nextObject])
+ 	id node = nil;
+    for (node in nodes)
 	{
 		if (node == self)
 			return YES;		// we found ourselv
@@ -362,12 +276,10 @@
 //
 //	Returns YES if any node in the array passed in is an ancestor of ours.
 // -------------------------------------------------------------------------------
-- (BOOL)isDescendantOfNodes:(NSArray*)nodes
+- (BOOL)isDescendantOfNodes:(NSArray *)nodes
 {
-    NSEnumerator *enumerator = [nodes objectEnumerator];
 	id node = nil;
-	
-    while (node = [enumerator nextObject])
+    for (node in nodes)
 	{
 		// check all the sub-nodes
 		if (![node isLeaf])
@@ -376,24 +288,24 @@
 				return YES;
 		}
     }
-
+    
 	return NO;
 }
 
 // -------------------------------------------------------------------------------
 //	indexPathInArray:array
 //
-//	Returns the index path of within the given array,
-//	useful for drag and drop.
+//	Returns the index path of within the given array, useful for drag and drop.
 // -------------------------------------------------------------------------------
-- (NSIndexPath*)indexPathInArray:(NSArray*)array
+- (NSIndexPath *)indexPathInArray:(NSArray *)array
 {
-	NSIndexPath		*indexPath = nil;
+	NSIndexPath	 *indexPath = nil;
 	NSMutableArray	*reverseIndexes = [NSMutableArray array];
-	id				parent, doc = self;
-	NSInteger		index;
+	id parent, doc = self;
+	NSInteger index;
 	
-	while (parent = [doc parentFromArray:array])
+	parent = [doc parentFromArray:array];
+    while (parent)
 	{
 		index = [[parent children] indexOfObjectIdenticalTo:doc];
 		if (index == NSNotFound)
@@ -409,16 +321,16 @@
 		return nil;
 	[reverseIndexes addObject:[NSNumber numberWithInt:index]];
 	
-	// Now build the index path
-	NSEnumerator *re = [reverseIndexes reverseObjectEnumerator];
-	NSNumber *indexNumber;
-	while (indexNumber = [re nextObject])
-	{
-		if (indexPath == nil)
-			indexPath = [NSIndexPath indexPathWithIndex:[indexNumber intValue]];
-		else
-			indexPath = [indexPath indexPathByAddingIndex:[indexNumber intValue]];
-	}
+	// now build the index path
+    NSEnumerator *re = [reverseIndexes reverseObjectEnumerator];
+    NSNumber *indexNumber;
+    for (indexNumber in re)
+    {
+        if (indexPath == nil)
+            indexPath = [NSIndexPath indexPathWithIndex:[indexNumber intValue]];
+        else
+            indexPath = [indexPath indexPathByAddingIndex:[indexNumber intValue]];
+    }
 	
 	return indexPath;
 }
@@ -431,7 +343,7 @@
 //
 //	Override this method to maintain support for archiving and copying.
 // -------------------------------------------------------------------------------
-- (NSArray*)mutableKeys
+- (NSArray *)mutableKeys
 {
 	return [NSArray arrayWithObjects:
 		@"nodeTitle",
@@ -445,55 +357,85 @@
 // -------------------------------------------------------------------------------
 //	initWithDictionary:dictionary
 // -------------------------------------------------------------------------------
-- (id)initWithDictionary:(NSDictionary*)dictionary
+- (id)initWithDictionary:(NSDictionary *)dictionary
 {
 	self = [self init];
-	NSEnumerator *keysToDecode = [[self mutableKeys] objectEnumerator];
-	NSString *key;
-	while (key = [keysToDecode nextObject])
-	{
-		if ([key isEqualToString:@"children"])
-		{
-			if ([[dictionary objectForKey:@"isLeaf"] boolValue])
-				[self setChildren:[NSArray arrayWithObject:self]];
-			else
-			{
-				NSArray *dictChildren = [dictionary objectForKey:key];
-				NSMutableArray *newChildren = [NSMutableArray array];
-				
-				for (id node in dictChildren)
-				{
-					id newNode = [[[self class] alloc] initWithDictionary:node];
-					[newChildren addObject:newNode];
-					[newNode release];
-				}
-				[self setChildren:newChildren];
-			}
-		}
-		else
-			[self setValue:[dictionary objectForKey:key] forKey:key];
-	}
+    if (self)
+    {
+        /*NSEnumerator *keysToDecode = [[self mutableKeys] objectEnumerator];
+        NSString *key;
+        while (key = [keysToDecode nextObject])
+        {
+            if ([key isEqualToString:@"children"])
+            {
+                if ([[dictionary objectForKey:@"isLeaf"] boolValue])
+                    [self setChildren:[NSArray arrayWithObject:self]];
+                else
+                {
+                    NSArray *dictChildren = [dictionary objectForKey:key];
+                    NSMutableArray *newChildren = [NSMutableArray array];
+                    
+                    for (id node in dictChildren)
+                    {
+                        id newNode = [[[self class] alloc] initWithDictionary:node];
+                        [newChildren addObject:newNode];
+                        [newNode release];
+                    }
+                    [self setChildren:newChildren];
+                }
+            }
+            else
+                [self setValue:[dictionary objectForKey:key] forKey:key];
+        }*/
+        
+        NSString *key;
+        for (key in [self mutableKeys])
+        {
+            if ([key isEqualToString:@"children"])
+            {
+                if ([[dictionary objectForKey:@"isLeaf"] boolValue])
+                    [self setChildren:[NSArray arrayWithObject:self]];
+                else
+                {
+                    NSArray *dictChildren = [dictionary objectForKey:key];
+                    NSMutableArray *newChildren = [NSMutableArray array];
+                    
+                    for (id node in dictChildren)
+                    {
+                        id newNode = [[[self class] alloc] initWithDictionary:node];
+                        [newChildren addObject:newNode];
+                        [newNode release];
+                    }
+                    [self setChildren:newChildren];
+                }
+            }
+            else
+            {
+                [self setValue:[dictionary objectForKey:key] forKey:key];
+            }
+        }
+    }
 	return self;
 }
 
 // -------------------------------------------------------------------------------
-//	dictionaryRepresentation:
+//	dictionaryRepresentation
 // -------------------------------------------------------------------------------
-- (NSDictionary*)dictionaryRepresentation
+- (NSDictionary *)dictionaryRepresentation
 {
 	NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
-	NSEnumerator		*keysToCode = [[self mutableKeys] objectEnumerator];
-	NSString			*key;
+	NSEnumerator *keysToCode = [[self mutableKeys] objectEnumerator];
+	NSString *key;
 	
 	while (key = [keysToCode nextObject])
 	{
 		// convert all children to dictionaries
 		if ([key isEqualToString:@"children"])
 		{
-			if (!isLeaf)
+			if (!self.isLeaf)
 			{
 				NSMutableArray *dictChildren = [NSMutableArray array];
-				for (id node in children)
+				for (id node in self.children)
 				{
 					[dictChildren addObject:[node dictionaryRepresentation]];
 				}
@@ -512,7 +454,7 @@
 // -------------------------------------------------------------------------------
 //	initWithCoder:coder
 // -------------------------------------------------------------------------------
-- (id)initWithCoder:(NSCoder*)coder
+- (id)initWithCoder:(NSCoder *)coder
 {		
 	self = [self init];
 	NSEnumerator *keysToDecode = [[self mutableKeys] objectEnumerator];
@@ -526,7 +468,7 @@
 // -------------------------------------------------------------------------------
 //	encodeWithCoder:coder
 // -------------------------------------------------------------------------------
-- (void)encodeWithCoder:(NSCoder*)coder
+- (void)encodeWithCoder:(NSCoder *)coder
 {	
 	NSEnumerator *keysToCode = [[self mutableKeys] objectEnumerator];
 	NSString *key;
@@ -537,7 +479,7 @@
 // -------------------------------------------------------------------------------
 //	copyWithZone:zone
 // -------------------------------------------------------------------------------
-- (id)copyWithZone:(NSZone*)zone
+- (id)copyWithZone:(NSZone *)zone
 {
 	id newNode = [[[self class] allocWithZone:zone] init];
 	
@@ -554,7 +496,7 @@
 //
 //	Override this for any non-object values
 // -------------------------------------------------------------------------------
-- (void)setNilValueForKey:(NSString*)key
+- (void)setNilValueForKey:(NSString *)key
 {
 	if ([key isEqualToString:@"isLeaf"])
 		isLeaf = NO;

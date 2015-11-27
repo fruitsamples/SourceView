@@ -2,7 +2,7 @@
      File: IconViewController.h 
  Abstract: Controller object for our icon collection view.
   
-  Version: 1.1 
+  Version: 1.3 
   
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple 
  Inc. ("Apple") in consideration of your agreement to the following 
@@ -42,25 +42,24 @@
  STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE 
  POSSIBILITY OF SUCH DAMAGE. 
   
- Copyright (C) 2010 Apple Inc. All Rights Reserved. 
+ Copyright (C) 2012 Apple Inc. All Rights Reserved. 
   
  */
 
 #import <Cocoa/Cocoa.h>
+
+extern NSString *kReceivedContentNotification;
 
 @interface IconViewBox : NSBox
 @end
 
 @interface IconViewController : NSViewController
 {
-	IBOutlet NSArrayController	*iconArrayController;
-	NSMutableArray				*icons;
-	NSURL						*url;
+    NSArrayController *iconArrayController;
+    NSURL *url;
+    NSMutableArray *icons;
 }
 
 @property (readwrite, retain) NSURL *url;
-
-- (NSMutableArray *)icons;
-- (void)setIcons:(NSMutableArray *)newIcons;
 	
 @end

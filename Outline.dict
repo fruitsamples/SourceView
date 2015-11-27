@@ -19,16 +19,16 @@
 		
 		<dict>
 			<key>name</key>
-			<string>Cocoa.h</string>
+			<string>BurningIcon</string>
 			<key>url</key>
-			<string>/System/Library/Frameworks/Cocoa.framework/Versions/A/Headers/Cocoa.h</string>
+			<string>/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/BurningIcon.icns</string>
 		</dict>
 		
 		<dict>
 			<key>name</key>
-			<string>AppKit.h</string>
+			<string>General</string>
 			<key>url</key>
-			<string>/System/Library/Frameworks/AppKit.framework/Versions/C/Headers/AppKit.h</string>
+			<string>/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/General.icns</string>
 		</dict>
 		
 		<dict>
@@ -132,7 +132,7 @@
 					<key>name</key>
 					<string>iPhone Center</string>
 					<key>url</key>
-					<string>http://www.wireless.att.com/cell-phone-service/specials/iPhoneCenter.html</string>
+					<string>http://www.att.com/wireless/iphone/#fbid=4I9RoePfouA</string>
 				</dict>
 				<dict>
 					<key>name</key>

@@ -2,7 +2,7 @@
      File: BaseNode.h 
  Abstract: Generic multi-use node object used with NSOutlineView and NSTreeController.
   
-  Version: 1.1 
+  Version: 1.3 
   
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple 
  Inc. ("Apple") in consideration of your agreement to the following 
@@ -42,7 +42,7 @@
  STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE 
  POSSIBILITY OF SUCH DAMAGE. 
   
- Copyright (C) 2010 Apple Inc. All Rights Reserved. 
+ Copyright (C) 2012 Apple Inc. All Rights Reserved. 
   
  */
 
@@ -50,29 +50,19 @@
 
 @interface BaseNode : NSObject <NSCoding, NSCopying>
 {
-	NSString		*nodeTitle;
-	NSMutableArray	*children;
-	BOOL			isLeaf;
-	NSImage			*nodeIcon;
-	NSString		*urlString;
+    NSString *nodeTitle;
+    NSImage *nodeIcon;
+    NSMutableArray *children;
+    NSString *urlString;
+    BOOL isLeaf;
 }
+@property (strong) NSString *nodeTitle;
+@property (strong) NSImage *nodeIcon;
+@property (strong) NSMutableArray *children;
+@property (strong) NSString *urlString;
+@property (assign) BOOL isLeaf;
 
 - (id)initLeaf;
-
-- (void)setNodeTitle:(NSString *)newNodeTitle;
-- (NSString *)nodeTitle;
-
-- (void)setChildren:(NSArray *)newChildren;
-- (NSMutableArray *)children;
-
-- (void)setLeaf:(BOOL)flag;
-- (BOOL)isLeaf;
-
-- (void)setNodeIcon:(NSImage *)icon;
-- (NSImage *)nodeIcon;
-
-- (void)setURL:(NSString *)name;
-- (NSString *)urlString;
 
 - (BOOL)isDraggable;
 
@@ -90,6 +80,6 @@
 - (NSArray *)groupChildren;
 - (BOOL)isDescendantOfOrOneOfNodes:(NSArray *)nodes;
 - (BOOL)isDescendantOfNodes:(NSArray *)nodes;
-- (NSIndexPath*)indexPathInArray:(NSArray*)array;
+- (NSIndexPath*)indexPathInArray:(NSArray *)array;
 
 @end

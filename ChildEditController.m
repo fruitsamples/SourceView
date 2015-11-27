@@ -2,7 +2,7 @@
      File: ChildEditController.m 
  Abstract: Controller object for the edit sheet panel.
   
-  Version: 1.1 
+  Version: 1.3 
   
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple 
  Inc. ("Apple") in consideration of your agreement to the following 
@@ -42,50 +42,42 @@
  STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE 
  POSSIBILITY OF SUCH DAMAGE. 
   
- Copyright (C) 2010 Apple Inc. All Rights Reserved. 
+ Copyright (C) 2012 Apple Inc. All Rights Reserved. 
   
  */
 
 #import "ChildEditController.h"
+#import "MyWindowController.h"
 
 @implementation ChildEditController
 
 // -------------------------------------------------------------------------------
-//	init:
+//	windowNibName
 // -------------------------------------------------------------------------------
-- (id)init
-{
-	self = [super init];
-	return self;
-}
-
-// -------------------------------------------------------------------------------
-//	windowNibName:
-// -------------------------------------------------------------------------------
-- (NSString*)windowNibName
+- (NSString *)windowNibName
 {
 	return @"ChildEdit";
 }
 
 // -------------------------------------------------------------------------------
-//	dealloc:
+//	dealloc
 // -------------------------------------------------------------------------------
 - (void)dealloc
 {
-	[super dealloc];
 	[savedFields release];
+    [super dealloc];
 }
 
 // -------------------------------------------------------------------------------
 //	edit:startingValues:from
 // -------------------------------------------------------------------------------
-- (NSMutableDictionary*)edit:(NSDictionary*)startingValues from:(MyWindowController*)sender
+- (NSDictionary *)edit:(NSDictionary *)startingValues from:(MyWindowController *)sender
 {
-	NSWindow* window = [self window];
+	NSWindow *window = [self window];
 
 	cancelled = NO;
 
-	NSArray* editFields = [editForm cells];
+	NSArray *editFields = [editForm cells];
 	if (startingValues != nil)
 	{
 		// we are editing current entry, use its values as the default
@@ -99,6 +91,7 @@
 		// we are adding a new entry,
 		// make sure the form fields are empty due to the fact that this controller is recycled
 		// each time the user opens the sheet -
+        //
 		[[editFields objectAtIndex:0] setStringValue:@""];
 		[[editFields objectAtIndex:1] setStringValue:@""];
 	}

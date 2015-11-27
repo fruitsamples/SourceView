@@ -2,7 +2,7 @@
      File: ImageAndTextCell.h 
  Abstract: Subclass of NSTextFieldCell which can display text and an image simultaneously.
   
-  Version: 1.1 
+  Version: 1.3 
   
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple 
  Inc. ("Apple") in consideration of your agreement to the following 
@@ -42,7 +42,7 @@
  STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE 
  POSSIBILITY OF SUCH DAMAGE. 
   
- Copyright (C) 2010 Apple Inc. All Rights Reserved. 
+ Copyright (C) 2012 Apple Inc. All Rights Reserved. 
   
  */
 
@@ -50,12 +50,10 @@
 
 @interface ImageAndTextCell : NSTextFieldCell
 {
-@private
-	NSImage *image;
+    NSImage *image;
 }
 
-- (void)setImage:(NSImage *)anImage;
-- (NSImage *)image;
+@property (readwrite, strong) NSImage *image;
 
 - (void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView;
 - (NSSize)cellSize;

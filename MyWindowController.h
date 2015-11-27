@@ -2,7 +2,7 @@
      File: MyWindowController.h 
  Abstract: Interface for MyWindowController class, the main controller class for this sample.
   
-  Version: 1.1 
+  Version: 1.3 
   
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple 
  Inc. ("Apple") in consideration of your agreement to the following 
@@ -42,7 +42,7 @@
  STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE 
  POSSIBILITY OF SUCH DAMAGE. 
   
- Copyright (C) 2010 Apple Inc. All Rights Reserved. 
+ Copyright (C) 2012 Apple Inc. All Rights Reserved. 
   
  */
 
@@ -61,7 +61,7 @@
 	IBOutlet NSView				*placeHolderView;
 	IBOutlet NSSplitView		*splitView;
 	IBOutlet WebView			*webView;
-	
+	IBOutlet NSProgressIndicator *progIndicator;
 	IBOutlet NSButton			*addFolderButton;
 	IBOutlet NSButton			*removeButton;
 	IBOutlet NSPopUpButton		*actionButton;
@@ -76,9 +76,9 @@
 	NSView						*currentView;
 	IconViewController			*iconViewController;
 	FileViewController			*fileViewController;
-	ChildEditController			*childEditController;
+	ChildEditController         *childEditController;
 	
-	BOOL						buildingOutlineView;	// signifies we are building the outline view at launch time
+	BOOL						buildingOutlineView; // signifies building the outline view at launch time
 	
 	NSArray						*dragNodesArray; // used to keep track of dragged nodes
 	

@@ -2,7 +2,7 @@
      File: FileViewController.m 
  Abstract: Controller object for our file view.
   
-  Version: 1.1 
+  Version: 1.3 
   
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple 
  Inc. ("Apple") in consideration of your agreement to the following 
@@ -42,20 +42,31 @@
  STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE 
  POSSIBILITY OF SUCH DAMAGE. 
   
- Copyright (C) 2010 Apple Inc. All Rights Reserved. 
+ Copyright (C) 2012 Apple Inc. All Rights Reserved. 
   
  */
 
 #import "FileViewController.h"
 
+@interface FileViewController ()
+
+@property (nonatomic, strong) IBOutlet NSImageView *fileIcon;
+@property (nonatomic, strong) IBOutlet NSTextField *fileName;
+@property (nonatomic, strong) IBOutlet NSTextField *fileSize;
+@property (nonatomic, strong) IBOutlet NSTextField *modDate;
+@property (nonatomic, strong) IBOutlet NSTextField *creationDate;
+@property (nonatomic, strong) IBOutlet NSTextField *fileKindString;
+
+@end
+
 @implementation FileViewController
 
-@synthesize url;
+@synthesize url, fileIcon, fileName, fileSize, modDate, creationDate, fileKindString;
 
 // -------------------------------------------------------------------------------
-//	awakeFromNib:
+//	awakeFromNib
 // -------------------------------------------------------------------------------
--(void)awakeFromNib
+- (void)awakeFromNib
 {
 	// listen for changes in the url for this view
 	[self addObserver:	self
@@ -65,7 +76,7 @@
 }
 
 // -------------------------------------------------------------------------------
-//	dealloc:
+//	dealloc
 // -------------------------------------------------------------------------------
 - (void)dealloc
 {
@@ -81,10 +92,10 @@
 //
 //	Listen for changes in the file url.
 // -------------------------------------------------------------------------------
-- (void)observeValueForKeyPath:	(NSString*)keyPath
+- (void)observeValueForKeyPath:	(NSString *)keyPath
 								ofObject:(id)object 
-								change:(NSDictionary*)change 
-								context:(void*)context
+								change:(NSDictionary *)change 
+								context:(void *)context
 {
 	// name
 	[fileName setStringValue: [[NSFileManager defaultManager] displayNameAtPath:[url path]]];
@@ -98,19 +109,16 @@
 	if (attr)
 	{
 		// file size
-		NSNumber *theFileSize;
-		if (theFileSize = [attr objectForKey:NSFileSize])
-			[fileSize setStringValue:[NSString stringWithFormat:@"%@ KB on disk", [theFileSize stringValue]]];
+		NSNumber *theFileSize = [attr objectForKey:NSFileSize];
+        [fileSize setStringValue:[NSString stringWithFormat:@"%@ KB on disk", [theFileSize stringValue]]];
 		
 		// creation date
-		NSDate *fileCreationDate;
-		if (fileCreationDate = [attr objectForKey:NSFileCreationDate])
-			[creationDate setStringValue:[fileCreationDate description]];
+		NSDate *fileCreationDate = [attr objectForKey:NSFileCreationDate];
+        [creationDate setStringValue:[fileCreationDate description]];
 				
 		// mod date
-		NSDate *fileModDate;
-		if (fileModDate = [attr objectForKey:NSFileModificationDate])
-			[modDate setStringValue:[fileModDate description]];	
+		NSDate *fileModDate = [attr objectForKey:NSFileModificationDate];
+        [modDate setStringValue:[fileModDate description]];	
 	}
 
 	// kind string

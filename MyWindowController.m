@@ -2,7 +2,7 @@
      File: MyWindowController.m 
  Abstract: Interface for MyWindowController class, the main controller class for this sample.
   
-  Version: 1.1 
+  Version: 1.3 
   
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple 
  Inc. ("Apple") in consideration of your agreement to the following 
@@ -42,7 +42,7 @@
  STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE 
  POSSIBILITY OF SUCH DAMAGE. 
   
- Copyright (C) 2010 Apple Inc. All Rights Reserved. 
+ Copyright (C) 2012 Apple Inc. All Rights Reserved. 
   
  */
 
@@ -82,6 +82,7 @@
 
 #define kNodesPBoardType		@"myNodesPBoardType"	// drag and drop pasteboard type
 
+#pragma mark -
 
 // -------------------------------------------------------------------------------
 //	TreeAdditionObj
@@ -101,11 +102,18 @@
 @property (readonly) NSString *nodeURL;
 @property (readonly) NSString *nodeName;
 @property (readonly) BOOL selectItsParent;
+
 @end
 
+
+#pragma mark -
+
 @implementation TreeAdditionObj
+
 @synthesize indexPath, nodeURL, nodeName, selectItsParent;
 
+// -------------------------------------------------------------------------------
+//  initWithURL:url:name:select
 // -------------------------------------------------------------------------------
 - (id)initWithURL:(NSString *)url withName:(NSString *)name selectItsParent:(BOOL)select
 {
@@ -120,14 +128,16 @@
 @end
 
 
+#pragma mark -
+
 @implementation MyWindowController
 
 @synthesize dragNodesArray;
 
 // -------------------------------------------------------------------------------
-//	initWithWindow:window:
+//	initWithWindow:window
 // -------------------------------------------------------------------------------
--(id)initWithWindow:(NSWindow *)window
+- (id)initWithWindow:(NSWindow *)window
 {
 	self = [super initWithWindow:window];
 	if (self)
@@ -146,7 +156,7 @@
 }
 
 // -------------------------------------------------------------------------------
-//	dealloc:
+//	dealloc
 // -------------------------------------------------------------------------------
 - (void)dealloc
 {
@@ -161,11 +171,13 @@
 	
 	self.dragNodesArray = nil;
 	
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:kReceivedContentNotification object:nil];
+    
 	[super dealloc];
 }
 
 // -------------------------------------------------------------------------------
-//	awakeFromNib:
+//	awakeFromNib
 // -------------------------------------------------------------------------------
 - (void)awakeFromNib
 {
@@ -230,12 +242,16 @@
 											nil]];
 											
 	[webView setUIDelegate:self];	// be the webView's delegate to capture NSResponder calls
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(contentReceived:)
+                                                 name:kReceivedContentNotification object:nil];
 }
 
 // -------------------------------------------------------------------------------
 //	setContents:newContents
 // -------------------------------------------------------------------------------
-- (void)setContents:(NSArray*)newContents
+- (void)setContents:(NSArray *)newContents
 {
 	if (contents != newContents)
 	{
@@ -252,8 +268,11 @@
 	return contents;
 }
 
+
+#pragma mark - Actions
+
 // -------------------------------------------------------------------------------
-//	selectParentFromSelection:
+//	selectParentFromSelection
 //
 //	Take the currently selected node and select its parent.
 // -------------------------------------------------------------------------------
@@ -281,7 +300,7 @@
 // -------------------------------------------------------------------------------
 //	performAddFolder:treeAddition
 // -------------------------------------------------------------------------------
--(void)performAddFolder:(TreeAdditionObj *)treeAddition
+- (void)performAddFolder:(TreeAdditionObj *)treeAddition
 {
 	// NSTreeController inserts objects using NSIndexPath, so we need to calculate this
 	NSIndexPath *indexPath = nil;
@@ -311,7 +330,7 @@
 	}
 	
 	ChildNode *node = [[ChildNode alloc] init];
-	[node setNodeTitle:[treeAddition nodeName]];
+    node.nodeTitle = [treeAddition nodeName];
 	
 	// the user is adding a child node, tell the controller directly
 	[treeController insertObject:node atArrangedObjectIndexPath:indexPath];
@@ -320,7 +339,7 @@
 }
 
 // -------------------------------------------------------------------------------
-//	addFolder:folderName:
+//	addFolder:folderName
 // -------------------------------------------------------------------------------
 - (void)addFolder:(NSString *)folderName
 {
@@ -350,7 +369,7 @@
 // -------------------------------------------------------------------------------
 //	performAddChild:treeAddition
 // -------------------------------------------------------------------------------
--(void)performAddChild:(TreeAdditionObj *)treeAddition
+- (void)performAddChild:(TreeAdditionObj *)treeAddition
 {
 	if ([[treeController selectedObjects] count] > 0)
 	{
@@ -378,23 +397,23 @@
 	
 	// create a leaf node
 	ChildNode *node = [[ChildNode alloc] initLeaf];
-	[node setURL:[treeAddition nodeURL]];
-	
+	node.urlString = [treeAddition nodeURL];
+    
 	if ([treeAddition nodeURL])
 	{
 		if ([[treeAddition nodeURL] length] > 0)
 		{
 			// the child to insert has a valid URL, use its display name as the node title
 			if ([treeAddition nodeName])
-				[node setNodeTitle:[treeAddition nodeName]];
+                node.nodeTitle = [treeAddition nodeName];
 			else
-				[node setNodeTitle:[[NSFileManager defaultManager] displayNameAtPath:[node urlString]]];
+                node.nodeTitle = [[NSFileManager defaultManager] displayNameAtPath:[node urlString]];
 		}
 		else
 		{
 			// the child to insert will be an empty URL
-			[node setNodeTitle:UNTITLED_NAME];
-			[node setURL:HTTP_PREFIX];
+            node.nodeTitle = UNTITLED_NAME;
+            node.urlString = HTTP_PREFIX;
 		}
 	}
 	
@@ -409,16 +428,20 @@
 }
 
 // -------------------------------------------------------------------------------
-//	addChild:url:withName:
+//	addChild:url:withName:selectParent
 // -------------------------------------------------------------------------------
 - (void)addChild:(NSString *)url withName:(NSString *)nameStr selectParent:(BOOL)select
 {
-	TreeAdditionObj *treeObjInfo = [[TreeAdditionObj alloc] initWithURL:url withName:nameStr selectItsParent:select];
+	TreeAdditionObj *treeObjInfo = [[TreeAdditionObj alloc] initWithURL:url
+                                                               withName:nameStr
+                                                        selectItsParent:select];
 	
 	if (buildingOutlineView)
 	{
 		// add the child node to the tree controller, but on the main thread to avoid lock ups
-		[self performSelectorOnMainThread:@selector(performAddChild:) withObject:treeObjInfo waitUntilDone:YES];
+		[self performSelectorOnMainThread:@selector(performAddChild:)
+                               withObject:treeObjInfo
+                            waitUntilDone:YES];
 	}
 	else
 	{
@@ -429,12 +452,12 @@
 }
 
 // -------------------------------------------------------------------------------
-//	addBookmarkAction:sender:
+//	addBookmarkAction:sender
 // -------------------------------------------------------------------------------
 - (IBAction)addBookmarkAction:(id)sender
 {
 	// ask our edit sheet for information on the new child to be added
-	NSMutableDictionary *newValues = [childEditController edit:nil from:self];
+	NSDictionary *newValues = [childEditController edit:nil from:self];
 	if (![childEditController wasCancelled] && newValues)
 	{
 		NSString *itemStr = [newValues objectForKey:@"name"];
@@ -445,7 +468,7 @@
 }
 
 // -------------------------------------------------------------------------------
-//	editChildAction:sender:
+//	editChildAction:sender
 // -------------------------------------------------------------------------------
 - (IBAction)editBookmarkAction:(id)sender
 {
@@ -453,8 +476,8 @@
 	
 	// get the selected item's name and url
 	NSInteger selectedRow = [myOutlineView selectedRow];
-	BaseNode* node = [[myOutlineView itemAtRow:selectedRow] representedObject];
-	NSDictionary* editInfo = [NSDictionary dictionaryWithObjectsAndKeys:
+	BaseNode *node = [[myOutlineView itemAtRow:selectedRow] representedObject];
+	NSDictionary *editInfo = [NSDictionary dictionaryWithObjectsAndKeys:
 								[node nodeTitle], @"name",
 								[node urlString], @"url",
 								nil];
@@ -468,29 +491,28 @@
 	}
 	else
 	{
-	
 		// ask our sheet to edit these two values
-		NSMutableDictionary *newValues = [childEditController edit:editInfo from:self];
+		NSDictionary *newValues = [childEditController edit:editInfo from:self];
 		if (![childEditController wasCancelled] && newValues)
 		{
 			// create a child node
-			ChildNode *node = [[ChildNode alloc] initLeaf];
-			[node setURL:[newValues objectForKey:@"url"]];
-			
+			ChildNode *childNode = [[ChildNode alloc] initLeaf];
+			childNode.urlString = [newValues objectForKey:@"url"];
+            
             NSString *nodeStr = [newValues objectForKey:@"name"];
-            [node setNodeTitle:([nodeStr length] > 0) ? [newValues objectForKey:@"name"] : UNTITLED_NAME];
-			
+			childNode.nodeTitle = ([nodeStr length] > 0) ? [newValues objectForKey:@"name"] : UNTITLED_NAME;
 			// remove the current selection and replace it with the newly edited child
 			[treeController remove:self];
-			[treeController insertObject:node atArrangedObjectIndexPath:indexPath];
+			[treeController insertObject:childNode atArrangedObjectIndexPath:indexPath];
+            [childNode release];
 		}
 	}
 }
 
 // -------------------------------------------------------------------------------
-//	addEntries:
+//	addEntries
 // -------------------------------------------------------------------------------
--(void)addEntries:(NSDictionary *)entries
+- (void)addEntries:(NSDictionary *)entries
 {
 	NSEnumerator *entryEnum = [entries objectEnumerator];
 	
@@ -526,8 +548,8 @@
 				[self addFolder:folderName];
 				
 				// add its children
-				NSDictionary *entries = [entry objectForKey:KEY_ENTRIES];
-				[self addEntries:entries];
+				NSDictionary *newChildren = [entry objectForKey:KEY_ENTRIES];
+				[self addEntries:newChildren];
 				
 				[self selectParentFromSelection];
 			}
@@ -543,7 +565,7 @@
 }
 
 // -------------------------------------------------------------------------------
-//	populateOutline:
+//	populateOutline
 //
 //	Populate the tree controller from disk-based dictionary (Outline.dict)
 // -------------------------------------------------------------------------------
@@ -556,7 +578,7 @@
 }
 
 // -------------------------------------------------------------------------------
-//	addDevicesSection:
+//	addDevicesSection
 // -------------------------------------------------------------------------------
 - (void)addDevicesSection
 {
@@ -575,7 +597,7 @@
 }
 
 // -------------------------------------------------------------------------------
-//	addPlacesSection:
+//	addPlacesSection
 // -------------------------------------------------------------------------------
 - (void)addPlacesSection
 {
@@ -649,12 +671,185 @@
 }
 
 // -------------------------------------------------------------------------------
-//	isSpecialGroup:
+//  validateMenuItem:item
+// -------------------------------------------------------------------------------
+- (BOOL)validateMenuItem:(NSMenuItem *)item
+{
+    BOOL enabled = NO;
+    
+    // is it our "Edit..." menu item in our action button?
+    if ([item action] == @selector(editBookmarkAction:))
+    {
+        if ([[treeController selectedNodes] count] > 0)
+        {
+            // only allow for editing http url items or items with out a URL
+            // (this avoids accidentally renaming real file system items)
+            //
+            NSTreeNode *firstSelectedNode = [[treeController selectedNodes] objectAtIndex:0];
+            BaseNode *node = [firstSelectedNode representedObject];
+            if (!node.urlString || [[node urlString] hasPrefix:HTTP_PREFIX])
+                enabled = YES;
+        }
+    }
+    
+    return enabled;
+}
+
+
+#pragma mark - Node checks
+
+// -------------------------------------------------------------------------------
+//	isSeparator:node
+// -------------------------------------------------------------------------------
+- (BOOL)isSeparator:(BaseNode *)node
+{
+    return ([node nodeIcon] == nil && [[node nodeTitle] length] == 0);
+}
+
+// -------------------------------------------------------------------------------
+//	isSpecialGroup:groupNode
 // -------------------------------------------------------------------------------
 - (BOOL)isSpecialGroup:(BaseNode *)groupNode
 { 
 	return ([groupNode nodeIcon] == nil &&
-			[[groupNode nodeTitle] isEqualToString:DEVICES_NAME] || [[groupNode nodeTitle] isEqualToString:PLACES_NAME]);
+			([[groupNode nodeTitle] isEqualToString:DEVICES_NAME] || [[groupNode nodeTitle] isEqualToString:PLACES_NAME]));
+}
+
+
+#pragma mark - Managing Views
+
+// -------------------------------------------------------------------------------
+//  contentReceived:notif
+//
+//  Notification sent from IconViewController class,
+//  indicating the file system content has been received
+// -------------------------------------------------------------------------------
+- (void)contentReceived:(NSNotification *)notif
+{
+    [progIndicator setHidden:YES];
+    [progIndicator stopAnimation:self];
+}
+
+// -------------------------------------------------------------------------------
+//	removeSubview
+// -------------------------------------------------------------------------------
+- (void)removeSubview
+{
+	// empty selection
+	NSArray *subViews = [placeHolderView subviews];
+	if ([subViews count] > 0)
+	{
+		[[subViews objectAtIndex:0] removeFromSuperview];
+	}
+	
+	[placeHolderView displayIfNeeded];	// we want the removed views to disappear right away
+}
+
+// -------------------------------------------------------------------------------
+//	changeItemView
+// ------------------------------------------------------------------------------
+- (void)changeItemView
+{
+	NSArray	*selection = [treeController selectedNodes];	
+	if ([selection count] > 0)
+    {
+        BaseNode *node = [[selection objectAtIndex:0] representedObject];
+        NSString *urlStr = [node urlString];
+        if (urlStr)
+        {
+            NSURL *targetURL = [NSURL fileURLWithPath:urlStr];
+            
+            if ([urlStr hasPrefix:HTTP_PREFIX])
+            {
+                // 1) the url is a web-based url
+                //
+                if (currentView != webView)
+                {
+                    // change to web view
+                    [self removeSubview];
+                    currentView = nil;
+                    [placeHolderView addSubview:webView];
+                    currentView = webView;
+                }
+                
+                // this will tell our WebUIDelegate not to retarget first responder since some web pages force
+                // forus to their text fields - we want to keep our outline view in focus.
+                retargetWebView = YES;	
+                
+                [webView setMainFrameURL:urlStr];	// re-target to the new url
+            }
+            else
+            {
+                // 2) the url is file-system based (folder or file)
+                //
+                if (currentView != [fileViewController view] || currentView != [iconViewController view])
+                {
+                    // detect if the url is a directory
+                    NSNumber *isDirectory = nil;
+                    
+                    NSURL *url = [NSURL fileURLWithPath:[node urlString]];
+                    [url getResourceValue:&isDirectory forKey:NSURLIsDirectoryKey error:nil];
+                    if ([isDirectory boolValue])
+                    {
+                        // avoid a flicker effect by not removing the icon view if it is already embedded
+                        if (!(currentView == [iconViewController view]))
+                        {
+                            // remove the old subview
+                            [self removeSubview];
+                            currentView = nil;
+                        }
+                        
+                        // change to icon view to display folder contents
+                        [placeHolderView addSubview:[iconViewController view]];
+                        currentView = [iconViewController view];
+                        
+                        // its a directory - show its contents using NSCollectionView
+                        iconViewController.url = targetURL;
+                        
+                        // add a spinning progress gear in case populating the icon view takes too long
+                        [progIndicator setHidden:NO];
+                        [progIndicator startAnimation:self];
+                        
+                        // note: we will be notifed back to stop our progress indicator
+                        // as soon as iconViewController is done fetching its content.
+                    }
+                    else
+                    {
+                        // 3) its a file, just show the item info
+                        //
+                        // remove the old subview
+                        [self removeSubview];
+                        currentView = nil;
+                        
+                        // change to file view
+                        [placeHolderView addSubview:[fileViewController view]];
+                        currentView = [fileViewController view];
+                        
+                        // update the file's info
+                        fileViewController.url = targetURL;
+                    }
+                }
+            }
+            
+            NSRect newBounds;
+            newBounds.origin.x = 0;
+            newBounds.origin.y = 0;
+            newBounds.size.width = [[currentView superview] frame].size.width;
+            newBounds.size.height = [[currentView superview] frame].size.height;
+            [currentView setFrame:[[currentView superview] frame]];
+            
+            // make sure our added subview is placed and resizes correctly
+            [currentView setFrameOrigin:NSMakePoint(0,0)];
+            [currentView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+        }
+        else
+        {
+            // there's no url associated with this node
+            // so a container was selected - no view to display
+            [self removeSubview];
+            currentView = nil;
+        }
+    }
 }
 
 
@@ -666,30 +861,30 @@
 - (BOOL)outlineView:(NSOutlineView *)outlineView shouldSelectItem:(id)item;
 {
 	// don't allow special group nodes (Devices and Places) to be selected
-	BaseNode* node = [item representedObject];
-	return (![self isSpecialGroup:node]);
+	BaseNode *node = [item representedObject];
+	return (![self isSpecialGroup:node] && ![self isSeparator:node]);
 }
 
 // -------------------------------------------------------------------------------
-//	dataCellForTableColumn:tableColumn:row
+//	dataCellForTableColumn:tableColumn:item
 // -------------------------------------------------------------------------------
 - (NSCell *)outlineView:(NSOutlineView *)outlineView dataCellForTableColumn:(NSTableColumn *)tableColumn item:(id)item
 {
-	NSCell* returnCell = [tableColumn dataCell];
+	NSCell *returnCell = [tableColumn dataCell];
 	
 	if ([[tableColumn identifier] isEqualToString:COLUMNID_NAME])
 	{
 		// we are being asked for the cell for the single and only column
-		BaseNode* node = [item representedObject];
-		if ([node nodeIcon] == nil && [[node nodeTitle] length] == 0)
-			returnCell = separatorCell;
+		BaseNode *node = [item representedObject];
+		if ([self isSeparator:node])
+            returnCell = separatorCell;
 	}
 	
 	return returnCell;
 }
 
 // -------------------------------------------------------------------------------
-//	textShouldEndEditing:
+//	textShouldEndEditing:fieldEditor
 // -------------------------------------------------------------------------------
 - (BOOL)control:(NSControl *)control textShouldEndEditing:(NSText *)fieldEditor
 {
@@ -728,7 +923,7 @@
 }
 
 // -------------------------------------------------------------------------------
-//	outlineView:willDisplayCell
+//	outlineView:willDisplayCell:forTableColumn:item
 // -------------------------------------------------------------------------------
 - (void)outlineView:(NSOutlineView *)olv willDisplayCell:(NSCell*)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item
 {	 
@@ -788,130 +983,6 @@
 }
 
 // -------------------------------------------------------------------------------
-//	removeSubview:
-// -------------------------------------------------------------------------------
-- (void)removeSubview
-{
-	// empty selection
-	NSArray *subViews = [placeHolderView subviews];
-	if ([subViews count] > 0)
-	{
-		[[subViews objectAtIndex:0] removeFromSuperview];
-	}
-	
-	[placeHolderView displayIfNeeded];	// we want the removed views to disappear right away
-}
-
-// -------------------------------------------------------------------------------
-//	changeItemView:
-// ------------------------------------------------------------------------------
-- (void)changeItemView
-{
-	NSArray		*selection = [treeController selectedNodes];	
-	BaseNode	*node = [[selection objectAtIndex:0] representedObject];
-	NSString	*urlStr = [node urlString];
-	
-	if (urlStr)
-	{
-		NSURL *targetURL = [NSURL fileURLWithPath:urlStr];
-		
-		if ([urlStr hasPrefix:HTTP_PREFIX])
-		{
-			// the url is a web-based url
-			if (currentView != webView)
-			{
-				// change to web view
-				[self removeSubview];
-				currentView = nil;
-				[placeHolderView addSubview:webView];
-				currentView = webView;
-			}
-			
-			// this will tell our WebUIDelegate not to retarget first responder since some web pages force
-			// forus to their text fields - we want to keep our outline view in focus.
-			retargetWebView = YES;	
-			
-			[webView setMainFrameURL:nil];		// reset the webview to an empty frame
-			[webView setMainFrameURL:urlStr];	// re-target to the new url
-		}
-		else
-		{
-			// the url is file-system based (folder or file)
-			if (currentView != [fileViewController view] || currentView != [iconViewController view])
-			{
-				// add a spinning progress gear in case populating the icon view takes too long
-				NSRect bounds = [placeHolderView bounds];
-				CGFloat x = (bounds.size.width-32)/2;
-				CGFloat y = (bounds.size.height-32)/2;
-				NSProgressIndicator* busyGear = [[NSProgressIndicator alloc] initWithFrame:NSMakeRect(x, y, 32, 32)];
-				[busyGear setStyle:NSProgressIndicatorSpinningStyle];
-				[busyGear startAnimation:self];
-				[placeHolderView addSubview:busyGear];
-				[placeHolderView displayIfNeeded];	// we want the removed views to disappear right away
-
-				// detect if the url is a directory
-				Boolean isDirectory;
-				FSRef ref;
-				FSPathMakeRef((const UInt8 *)[urlStr fileSystemRepresentation], &ref, &isDirectory);
-				
-				if (isDirectory)
-				{
-					// avoid a flicker effect by not removing the icon view if it is already embedded
-					if (!(currentView == [iconViewController view]))
-					{
-						// remove the old subview
-						[self removeSubview];
-						currentView = nil;
-					}
-					
-					// change to icon view to display folder contents
-					[placeHolderView addSubview:[iconViewController view]];
-					currentView = [iconViewController view];
-					
-					// its a directory - show its contents using NSCollectionView
-					iconViewController.url = targetURL;
-				}
-				else
-				{
-					// its a file, just show the item info
-
-					// remove the old subview
-					[self removeSubview];
-					currentView = nil;
-				
-					// change to file view
-					[placeHolderView addSubview:[fileViewController view]];
-					currentView = [fileViewController view];
-					
-					// update the file's info
-					fileViewController.url = targetURL;
-				}
-				
-				[busyGear removeFromSuperview];
-			}
-		}
-		
-		NSRect newBounds;
-		newBounds.origin.x = 0;
-		newBounds.origin.y = 0;
-		newBounds.size.width = [[currentView superview] frame].size.width;
-		newBounds.size.height = [[currentView superview] frame].size.height;
-		[currentView setFrame:[[currentView superview] frame]];
-		
-		// make sure our added subview is placed and resizes correctly
-		[currentView setFrameOrigin:NSMakePoint(0,0)];
-		[currentView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-	}
-	else
-	{
-		// there's no url associated with this node
-		// so a container was selected - no view to display
-		[self removeSubview];
-		currentView = nil;
-	}
-}
-
-// -------------------------------------------------------------------------------
 //	outlineViewSelectionDidChange:notification
 // -------------------------------------------------------------------------------
 - (void)outlineViewSelectionDidChange:(NSNotification *)notification
@@ -946,16 +1017,9 @@
 // ----------------------------------------------------------------------------------------
 // outlineView:isGroupItem:item
 // ----------------------------------------------------------------------------------------
--(BOOL)outlineView:(NSOutlineView*)outlineView isGroupItem:(id)item
+- (BOOL)outlineView:(NSOutlineView *)outlineView isGroupItem:(id)item
 {
-	if ([self isSpecialGroup:[item representedObject]])
-	{
-		return YES;
-	}
-	else
-	{
-		return NO;
-	}
+	return ([self isSpecialGroup:[item representedObject]] ? YES : NO);
 }
 
 
@@ -1040,9 +1104,11 @@
 	{
 		ChildNode *node = [[ChildNode alloc] init];
 		
-		[node setLeaf:YES];
-		[node setNodeTitle:[nameArray objectAtIndex:i]];
-		[node setURL:[urlArray objectAtIndex:i]];
+        node.isLeaf = YES;
+
+        node.nodeTitle = [nameArray objectAtIndex:i];
+        
+        node.urlString = [urlArray objectAtIndex:i];
 		[treeController insertObject:node atArrangedObjectIndexPath:indexPath];
 		
 		[node release];
@@ -1054,22 +1120,22 @@
 //
 //	The user is doing an intra-app drag within the outline view.
 // -------------------------------------------------------------------------------
-- (void)handleInternalDrops:(NSPasteboard*)pboard withIndexPath:(NSIndexPath*)indexPath
+- (void)handleInternalDrops:(NSPasteboard *)pboard withIndexPath:(NSIndexPath *)indexPath
 {
 	// user is doing an intra app drag within the outline view:
 	//
 	NSArray* newNodes = self.dragNodesArray;
 
 	// move the items to their new place (we do this backwards, otherwise they will end up in reverse order)
-	NSInteger i;
-	for (i = ([newNodes count] - 1); i >=0; i--)
+	NSInteger idx;
+	for (idx = ([newNodes count] - 1); idx >= 0; idx--)
 	{
-		[treeController moveNode:[newNodes objectAtIndex:i] toIndexPath:indexPath];
+		[treeController moveNode:[newNodes objectAtIndex:idx] toIndexPath:indexPath];
 	}
 	
 	// keep the moved nodes selected
-	NSMutableArray* indexPathList = [NSMutableArray array];
-	for (i = 0; i < [newNodes count]; i++)
+	NSMutableArray *indexPathList = [NSMutableArray array];
+    for (NSUInteger i = 0; i < [newNodes count]; i++)
 	{
 		[indexPathList addObject:[[newNodes objectAtIndex:i] indexPath]];
 	}
@@ -1081,7 +1147,7 @@
 //
 //	The user is dragging file-system based objects (probably from Finder)
 // -------------------------------------------------------------------------------
-- (void)handleFileBasedDrops:(NSPasteboard*)pboard withIndexPath:(NSIndexPath*)indexPath
+- (void)handleFileBasedDrops:(NSPasteboard *)pboard withIndexPath:(NSIndexPath *)indexPath
 {
 	NSArray *fileNames = [pboard propertyListForType:NSFilenamesPboardType];
 	if ([fileNames count] > 0)
@@ -1091,14 +1157,15 @@
 		
 		for (i = (count - 1); i >=0; i--)
 		{
-			NSURL* url = [NSURL fileURLWithPath:[fileNames objectAtIndex:i]];
-			
 			ChildNode *node = [[ChildNode alloc] init];
 
-			NSString* name = [[NSFileManager defaultManager] displayNameAtPath:[url path]];
-			[node setLeaf:YES];
-			[node setNodeTitle:name];
-			[node setURL:[url path]];
+			NSURL *url = [NSURL fileURLWithPath:[fileNames objectAtIndex:i]];
+            NSString *name = [[NSFileManager defaultManager] displayNameAtPath:[url path]];
+            node.isLeaf = YES;
+
+            node.nodeTitle = name;
+            node.urlString = [url path];
+            
 			[treeController insertObject:node atArrangedObjectIndexPath:indexPath];
 			
 			[node release];
@@ -1111,7 +1178,7 @@
 //
 //	Handle dropping a raw URL.
 // -------------------------------------------------------------------------------
-- (void)handleURLBasedDrops:(NSPasteboard*)pboard withIndexPath:(NSIndexPath*)indexPath
+- (void)handleURLBasedDrops:(NSPasteboard *)pboard withIndexPath:(NSIndexPath *)indexPath
 {
 	NSURL *url = [NSURL URLFromPasteboard:pboard];
 	if (url)
@@ -1122,8 +1189,8 @@
 		{
 			// url is file-based, use it's display name
 			NSString *name = [[NSFileManager defaultManager] displayNameAtPath:[url path]];
-			[node setNodeTitle:name];
-			[node setURL:[url path]];
+            node.nodeTitle = name;
+            node.urlString = [url path];
 		}
 		else
 		{
@@ -1137,23 +1204,23 @@
 					// use the url portion without the prefix
 					NSRange prefixRange = [[url absoluteString] rangeOfString:HTTP_PREFIX];
 					NSRange newRange = NSMakeRange(prefixRange.length, [[url absoluteString] length]- prefixRange.length - 1);
-					[node setNodeTitle:[[url absoluteString] substringWithRange:newRange]];
+                    node.nodeTitle = [[url absoluteString] substringWithRange:newRange];
 				}
 				else
 				{
 					// prefix unknown, just use the url as its title
-					[node setNodeTitle:[url absoluteString]];
+                    node.nodeTitle = [url absoluteString];
 				}
 			}
 			else
 			{
 				// use the last portion of the URL as its title
-				[node setNodeTitle:[[url path] lastPathComponent]];
+                node.nodeTitle = [[url path] lastPathComponent];
 			}
 				
-			[node setURL:[url absoluteString]];
+            node.urlString = [url absoluteString];
 		}
-		[node setLeaf:YES];
+        node.isLeaf = YES;
 		
 		[treeController insertObject:node atArrangedObjectIndexPath:indexPath];
 		
@@ -1187,7 +1254,7 @@
 	{
 		// drop at the top root level
 		if (index == -1)	// drop area might be ambibuous (not at a particular location)
-			indexPath = [NSIndexPath indexPathWithIndex:[contents count]];		// drop at the end of the top level
+			indexPath = [NSIndexPath indexPathWithIndex:[contents count]]; // drop at the end of the top level
 		else
 			indexPath = [NSIndexPath indexPathWithIndex:index]; // drop at a particular place at the top level
 	}
@@ -1249,7 +1316,7 @@
 //
 //	Keep the left split pane from resizing as the user moves the divider line.
 // -------------------------------------------------------------------------------
-- (void)splitView:(NSSplitView*)sender resizeSubviewsWithOldSize:(NSSize)oldSize
+- (void)splitView:(NSSplitView *)sender resizeSubviewsWithOldSize:(NSSize)oldSize
 {
 	NSRect newFrame = [sender frame]; // get the new size of the whole splitView
 	NSView *left = [[sender subviews] objectAtIndex:0];
